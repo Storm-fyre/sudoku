@@ -334,26 +334,25 @@
                 const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                 const data = imageData.data;
                 
-                // Convert to grayscale and enhance contrast for gray numbers
+                // Optimized preprocessing - faster pixel operations
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i];
                     const g = data[i + 1];
                     const b = data[i + 2];
                     
-                    // Grayscale conversion
-                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    // Fast grayscale conversion
+                    const gray = (r + g + b) / 3;
                     
-                    // Enhance contrast specifically for gray circular numbers
-                    // Detect if pixel is part of a gray number (around 160-200 range)
+                    // Simplified contrast enhancement for gray numbers
                     let enhanced;
                     if (gray > 140 && gray < 220) {
-                        // This is likely a gray number - make it darker
-                        enhanced = Math.max(0, gray - 60);
+                        // Gray number - enhance contrast
+                        enhanced = gray < 180 ? 80 : 120;
                     } else if (gray > 240) {
-                        // This is background - keep it light
+                        // Background - keep white
                         enhanced = 255;
                     } else {
-                        // Grid lines or other elements
+                        // Other elements
                         enhanced = gray;
                     }
                     
@@ -412,32 +411,44 @@
             
             async processAllCells(cells) {
                 this.confidenceScores = [];
-                const batchSize = 9; // Process 9 cells at a time
                 
-                for (let i = 0; i < cells.length; i += batchSize) {
-                    const batch = cells.slice(i, i + batchSize);
-                    await Promise.all(batch.map(cell => this.processSingleCell(cell)));
-                    
-                    const progress = 20 + (80 * (i + batchSize) / cells.length);
+                // Process all cells in parallel for maximum speed
+                const promises = cells.map(cell => this.processSingleCell(cell));
+                
+                // Update progress periodically
+                const progressInterval = setInterval(() => {
+                    const completed = this.confidenceScores.length;
+                    const progress = 20 + (80 * completed / cells.length);
                     this.updateProgress(Math.min(progress, 100));
-                }
+                }, 100);
+                
+                await Promise.all(promises);
+                clearInterval(progressInterval);
             }
             
             async processSingleCell(cell) {
                 try {
-                    // Configure Tesseract for single digits
+                    // Optimized Tesseract configuration for speed
                     const result = await Tesseract.recognize(cell.canvas, 'eng', {
                         logger: () => {}, // Suppress logs
                         tessedit_char_whitelist: '123456789',
                         tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR,
-                        preserve_interword_spaces: '0'
+                        preserve_interword_spaces: '0',
+                        // Speed optimizations
+                        tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
+                        classify_enable_learning: '0',
+                        classify_enable_adaptive_matcher: '0',
+                        textord_really_old_xheight: '1',
+                        segment_penalty_dict_nonword: '0',
+                        language_model_penalty_non_freq_dict_word: '0',
+                        language_model_penalty_non_dict_word: '0'
                     });
                     
                     const text = result.data.text.trim();
                     const confidence = result.data.confidence;
                     
-                    // Only accept high confidence single digits
-                    if (text.length === 1 && /[1-9]/.test(text) && confidence > 30) {
+                    // Lowered threshold since 38% avg is working well
+                    if (text.length === 1 && /[1-9]/.test(text) && confidence > 25) {
                         this.grid[cell.row][cell.col] = parseInt(text);
                         this.confidenceScores.push(confidence);
                     } else {
