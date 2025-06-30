@@ -3,153 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sudoku Number Extractor</title>
+    <title>Sudoku Solver - Image to Image</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
         
         .container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
         }
         
         .upload-area {
-            border: 2px dashed #ccc;
-            border-radius: 10px;
-            padding: 40px;
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 50px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             cursor: pointer;
-            transition: border-color 0.3s;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #f8f9ff, #fff);
         }
         
         .upload-area:hover {
-            border-color: #007bff;
+            border-color: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
         }
         
         .upload-area.dragover {
-            border-color: #007bff;
-            background: #f0f8ff;
+            border-color: #764ba2;
+            background: linear-gradient(45deg, #f0f4ff, #fff);
+            transform: scale(1.02);
         }
         
-        #imagePreview {
-            max-width: 100%;
-            max-height: 400px;
-            margin: 20px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
         }
         
-        .controls {
-            margin: 20px 0;
+        .upload-text {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .image-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .image-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             text-align: center;
         }
         
-        button {
-            background: #007bff;
+        .image-card h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin-bottom: 15px;
+        }
+        
+        .solve-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
+            padding: 15px 40px;
+            border-radius: 25px;
             cursor: pointer;
-            font-size: 16px;
-            margin: 0 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            margin: 20px auto;
+            display: block;
         }
         
-        button:hover {
-            background: #0056b3;
+        .solve-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.6);
         }
         
-        button:disabled {
+        .solve-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+            text-align: center;
         }
         
         .progress {
             width: 100%;
-            height: 20px;
+            height: 8px;
             background: #f0f0f0;
             border-radius: 10px;
             overflow: hidden;
-            margin: 20px 0;
+            margin: 15px 0;
             display: none;
         }
         
         .progress-bar {
             height: 100%;
-            background: #007bff;
+            background: linear-gradient(90deg, #667eea, #764ba2);
             width: 0%;
-            transition: width 0.3s;
+            transition: width 0.3s ease;
+            border-radius: 10px;
         }
         
-        .grid-display {
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            gap: 2px;
-            max-width: 450px;
-            margin: 20px auto;
-            background: #333;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        
-        .cell {
-            background: white;
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            border: 1px solid #ccc;
-        }
-        
-        .cell.filled {
-            background: #e8f5e8;
-            color: #2d5a2d;
-        }
-        
-        .cell.empty {
-            background: #f8f8f8;
-            color: #999;
-        }
-        
-        .results {
-            margin-top: 20px;
+        .status {
             padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            font-family: monospace;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: 500;
+            text-align: center;
         }
         
-        .error {
-            color: #dc3545;
-            background: #f8d7da;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #2196f3;
         }
         
-        .success {
-            color: #155724;
-            background: #d4edda;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #4caf50;
         }
         
-        .debug-canvas {
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            max-width: 100%;
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #f44336;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+        
+        .clear-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
         }
         
         .stats {
@@ -157,81 +227,104 @@
             justify-content: space-around;
             margin: 20px 0;
             text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
         }
         
         .stat {
-            padding: 10px;
-            background: #e9ecef;
-            border-radius: 5px;
             flex: 1;
-            margin: 0 5px;
+            margin: 0 10px;
         }
         
         .stat-value {
-            font-size: 24px;
+            font-size: 2em;
             font-weight: bold;
-            color: #007bff;
+            color: #667eea;
+            display: block;
         }
         
         .stat-label {
-            font-size: 12px;
+            font-size: 0.9em;
             color: #666;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .image-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+            
+            .stat {
+                margin: 10px 0;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Sudoku Number Extractor</h1>
-        <p>Upload your Sudoku image with gray circular numbers to extract the grid automatically.</p>
+        <h1>🧩 Sudoku Solver</h1>
+        <p class="subtitle">Upload your Sudoku puzzle image and get the solved version instantly</p>
         
         <div class="upload-area" id="uploadArea">
-            <p>Click to select image or drag and drop here</p>
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">Drop your Sudoku image here</div>
+            <div class="upload-subtext">or click to browse files</div>
             <input type="file" id="fileInput" accept="image/*" style="display: none;">
         </div>
         
-        <img id="imagePreview" style="display: none;">
-        
-        <div class="controls">
-            <button id="extractBtn" disabled>Extract Numbers</button>
-            <button id="copyBtn" disabled>Copy Grid as Text</button>
-            <button id="clearBtn">Clear</button>
-        </div>
-        
-        <div class="progress" id="progress">
-            <div class="progress-bar" id="progressBar"></div>
+        <div class="progress-container">
+            <button class="solve-btn" id="solveBtn" disabled>🚀 Solve Sudoku</button>
+            <div class="progress" id="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
         </div>
         
         <div id="status"></div>
         
         <div class="stats" id="stats" style="display: none;">
             <div class="stat">
-                <div class="stat-value" id="filledCount">0</div>
-                <div class="stat-label">Numbers Found</div>
+                <span class="stat-value" id="extractedCount">0</span>
+                <div class="stat-label">Numbers Extracted</div>
             </div>
             <div class="stat">
-                <div class="stat-value" id="emptyCount">81</div>
-                <div class="stat-label">Empty Cells</div>
+                <span class="stat-value" id="solveTime">0s</span>
+                <div class="stat-label">Solve Time</div>
             </div>
             <div class="stat">
-                <div class="stat-value" id="confidence">0%</div>
-                <div class="stat-label">Avg Confidence</div>
+                <span class="stat-value" id="confidence">0%</span>
+                <div class="stat-label">Confidence</div>
             </div>
         </div>
         
-        <div class="grid-display" id="gridDisplay" style="display: none;"></div>
-        
-        <div class="results" id="results" style="display: none;"></div>
-        
-        <canvas id="debugCanvas" class="debug-canvas" style="display: none;"></canvas>
+        <div class="image-section" id="imageSection" style="display: none;">
+            <div class="image-card">
+                <h3>📋 Original Puzzle</h3>
+                <img id="originalImage" class="image-preview">
+            </div>
+            <div class="image-card">
+                <h3>✅ Solved Puzzle</h3>
+                <img id="solvedImage" class="image-preview">
+                <div>
+                    <a class="download-btn" id="downloadBtn" download="solved-sudoku.png">💾 Download Solution</a>
+                    <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        class SudokuExtractor {
+        class SudokuSolver {
             constructor() {
-                this.image = null;
+                this.originalImage = null;
+                this.extractedGrid = Array(9).fill().map(() => Array(9).fill(0));
+                this.solvedGrid = Array(9).fill().map(() => Array(9).fill(0));
                 this.canvas = document.createElement('canvas');
                 this.ctx = this.canvas.getContext('2d');
-                this.grid = Array(9).fill().map(() => Array(9).fill(0));
                 this.confidenceScores = [];
                 this.setupEventListeners();
             }
@@ -239,8 +332,7 @@
             setupEventListeners() {
                 const uploadArea = document.getElementById('uploadArea');
                 const fileInput = document.getElementById('fileInput');
-                const extractBtn = document.getElementById('extractBtn');
-                const copyBtn = document.getElementById('copyBtn');
+                const solveBtn = document.getElementById('solveBtn');
                 const clearBtn = document.getElementById('clearBtn');
                 
                 uploadArea.addEventListener('click', () => fileInput.click());
@@ -248,8 +340,7 @@
                 uploadArea.addEventListener('drop', this.handleDrop.bind(this));
                 
                 fileInput.addEventListener('change', this.handleFileSelect.bind(this));
-                extractBtn.addEventListener('click', this.extractNumbers.bind(this));
-                copyBtn.addEventListener('click', this.copyGrid.bind(this));
+                solveBtn.addEventListener('click', this.solveSudoku.bind(this));
                 clearBtn.addEventListener('click', this.clear.bind(this));
             }
             
@@ -280,79 +371,106 @@
                 reader.onload = (e) => {
                     const img = new Image();
                     img.onload = () => {
-                        this.image = img;
-                        this.displayImage();
-                        document.getElementById('extractBtn').disabled = false;
+                        this.originalImage = img;
+                        this.displayOriginalImage();
+                        document.getElementById('solveBtn').disabled = false;
                     };
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
             
-            displayImage() {
-                const preview = document.getElementById('imagePreview');
-                preview.src = this.image.src;
-                preview.style.display = 'block';
+            displayOriginalImage() {
+                const originalImg = document.getElementById('originalImage');
+                originalImg.src = this.originalImage.src;
             }
             
-            async extractNumbers() {
-                if (!this.image) return;
+            async solveSudoku() {
+                if (!this.originalImage) return;
                 
+                const startTime = Date.now();
                 this.showProgress(true);
-                this.updateStatus('Preprocessing image...', 'info');
+                this.updateStatus('🔍 Extracting numbers from image...', 'info');
                 
                 try {
-                    // Setup canvas
-                    this.canvas.width = this.image.width;
-                    this.canvas.height = this.image.height;
-                    this.ctx.drawImage(this.image, 0, 0);
+                    // Extract numbers from image
+                    await this.extractNumbers();
                     
-                    // Preprocess image for better OCR
-                    this.preprocessImage();
+                    this.updateProgress(60);
+                    this.updateStatus('🧠 Solving puzzle...', 'info');
                     
-                    // Extract grid
-                    const cells = this.extractGridCells();
+                    // Solve the puzzle
+                    this.solvedGrid = this.extractedGrid.map(row => [...row]);
+                    const solved = this.solve(this.solvedGrid);
                     
-                    this.updateProgress(20);
-                    this.updateStatus('Extracting numbers from cells...', 'info');
+                    if (!solved) {
+                        throw new Error('Puzzle could not be solved. Please check if the extracted numbers are correct.');
+                    }
                     
-                    // Process each cell with OCR
-                    await this.processAllCells(cells);
+                    this.updateProgress(80);
+                    this.updateStatus('🎨 Generating solution image...', 'info');
                     
+                    // Generate solution image
+                    await this.generateSolutionImage();
+                    
+                    const solveTime = ((Date.now() - startTime) / 1000).toFixed(1);
                     this.updateProgress(100);
-                    this.updateStatus('Extraction complete!', 'success');
-                    this.displayResults();
+                    this.updateStatus('🎉 Puzzle solved successfully!', 'success');
+                    
+                    this.displayResults(solveTime);
                     
                 } catch (error) {
-                    this.updateStatus(`Error: ${error.message}`, 'error');
+                    this.updateStatus(`❌ Error: ${error.message}`, 'error');
                 } finally {
                     this.showProgress(false);
                 }
+            }
+            
+            async extractNumbers() {
+                // Setup canvas
+                this.canvas.width = this.originalImage.width;
+                this.canvas.height = this.originalImage.height;
+                this.ctx.drawImage(this.originalImage, 0, 0);
+                
+                // Preprocess image
+                this.preprocessImage();
+                
+                // Extract grid cells
+                const cells = this.extractGridCells();
+                
+                this.updateProgress(20);
+                
+                // Process all cells in parallel
+                this.confidenceScores = [];
+                const promises = cells.map(cell => this.processSingleCell(cell));
+                
+                const progressInterval = setInterval(() => {
+                    const completed = this.confidenceScores.length;
+                    const progress = 20 + (40 * completed / cells.length);
+                    this.updateProgress(Math.min(progress, 60));
+                }, 100);
+                
+                await Promise.all(promises);
+                clearInterval(progressInterval);
             }
             
             preprocessImage() {
                 const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                 const data = imageData.data;
                 
-                // Optimized preprocessing - faster pixel operations
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i];
                     const g = data[i + 1];
                     const b = data[i + 2];
                     
-                    // Fast grayscale conversion
                     const gray = (r + g + b) / 3;
                     
-                    // Simplified contrast enhancement for gray numbers
                     let enhanced;
                     if (gray > 140 && gray < 220) {
-                        // Gray number - enhance contrast
                         enhanced = gray < 180 ? 80 : 120;
                     } else if (gray > 240) {
-                        // Background - keep white
                         enhanced = 255;
                     } else {
-                        // Other elements
                         enhanced = gray;
                     }
                     
@@ -362,14 +480,6 @@
                 }
                 
                 this.ctx.putImageData(imageData, 0, 0);
-                
-                // Show debug canvas
-                const debugCanvas = document.getElementById('debugCanvas');
-                debugCanvas.width = this.canvas.width;
-                debugCanvas.height = this.canvas.height;
-                const debugCtx = debugCanvas.getContext('2d');
-                debugCtx.drawImage(this.canvas, 0, 0);
-                debugCanvas.style.display = 'block';
             }
             
             extractGridCells() {
@@ -382,7 +492,6 @@
                         const x = col * cellWidth;
                         const y = row * cellHeight;
                         
-                        // Add small padding to avoid grid lines
                         const padding = Math.min(cellWidth, cellHeight) * 0.1;
                         const cellCanvas = document.createElement('canvas');
                         const cellCtx = cellCanvas.getContext('2d');
@@ -409,32 +518,13 @@
                 return cells;
             }
             
-            async processAllCells(cells) {
-                this.confidenceScores = [];
-                
-                // Process all cells in parallel for maximum speed
-                const promises = cells.map(cell => this.processSingleCell(cell));
-                
-                // Update progress periodically
-                const progressInterval = setInterval(() => {
-                    const completed = this.confidenceScores.length;
-                    const progress = 20 + (80 * completed / cells.length);
-                    this.updateProgress(Math.min(progress, 100));
-                }, 100);
-                
-                await Promise.all(promises);
-                clearInterval(progressInterval);
-            }
-            
             async processSingleCell(cell) {
                 try {
-                    // Optimized Tesseract configuration for speed
                     const result = await Tesseract.recognize(cell.canvas, 'eng', {
-                        logger: () => {}, // Suppress logs
+                        logger: () => {},
                         tessedit_char_whitelist: '123456789',
                         tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR,
                         preserve_interword_spaces: '0',
-                        // Speed optimizations
                         tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
                         classify_enable_learning: '0',
                         classify_enable_adaptive_matcher: '0',
@@ -447,113 +537,158 @@
                     const text = result.data.text.trim();
                     const confidence = result.data.confidence;
                     
-                    // Lowered threshold since 38% avg is working well
                     if (text.length === 1 && /[1-9]/.test(text) && confidence > 25) {
-                        this.grid[cell.row][cell.col] = parseInt(text);
+                        this.extractedGrid[cell.row][cell.col] = parseInt(text);
                         this.confidenceScores.push(confidence);
                     } else {
-                        this.grid[cell.row][cell.col] = 0;
+                        this.extractedGrid[cell.row][cell.col] = 0;
                         this.confidenceScores.push(0);
                     }
                     
                 } catch (error) {
-                    console.warn(`Error processing cell ${cell.row},${cell.col}:`, error);
-                    this.grid[cell.row][cell.col] = 0;
+                    this.extractedGrid[cell.row][cell.col] = 0;
                     this.confidenceScores.push(0);
                 }
             }
             
-            displayResults() {
-                this.displayGrid();
-                this.displayTextGrid();
-                this.updateStats();
-                document.getElementById('copyBtn').disabled = false;
+            // Sudoku solving algorithm
+            solve(grid) {
+                const emptyCell = this.findEmpty(grid);
+                if (!emptyCell) return true; // Solved
+                
+                const [row, col] = emptyCell;
+                
+                for (let num = 1; num <= 9; num++) {
+                    if (this.isValid(grid, num, row, col)) {
+                        grid[row][col] = num;
+                        
+                        if (this.solve(grid)) return true;
+                        
+                        grid[row][col] = 0; // Backtrack
+                    }
+                }
+                
+                return false;
             }
             
-            displayGrid() {
-                const gridDisplay = document.getElementById('gridDisplay');
-                gridDisplay.innerHTML = '';
-                gridDisplay.style.display = 'grid';
-                
+            findEmpty(grid) {
                 for (let row = 0; row < 9; row++) {
                     for (let col = 0; col < 9; col++) {
-                        const cell = document.createElement('div');
-                        cell.className = 'cell';
-                        
-                        const value = this.grid[row][col];
-                        if (value > 0) {
-                            cell.textContent = value;
-                            cell.classList.add('filled');
-                        } else {
-                            cell.textContent = '';
-                            cell.classList.add('empty');
+                        if (grid[row][col] === 0) {
+                            return [row, col];
                         }
-                        
-                        // Add thick borders for 3x3 boxes
-                        if (row % 3 === 0 && row > 0) cell.style.borderTop = '3px solid #333';
-                        if (col % 3 === 0 && col > 0) cell.style.borderLeft = '3px solid #333';
-                        
-                        gridDisplay.appendChild(cell);
                     }
                 }
+                return null;
             }
             
-            displayTextGrid() {
-                const results = document.getElementById('results');
-                let gridText = 'Extracted Sudoku Grid:\n\n';
+            isValid(grid, num, row, col) {
+                // Check row
+                for (let x = 0; x < 9; x++) {
+                    if (grid[row][x] === num) return false;
+                }
                 
+                // Check column
+                for (let x = 0; x < 9; x++) {
+                    if (grid[x][col] === num) return false;
+                }
+                
+                // Check 3x3 box
+                const startRow = row - (row % 3);
+                const startCol = col - (col % 3);
+                
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        if (grid[i + startRow][j + startCol] === num) return false;
+                    }
+                }
+                
+                return true;
+            }
+            
+            async generateSolutionImage() {
+                const solutionCanvas = document.createElement('canvas');
+                const solutionCtx = solutionCanvas.getContext('2d');
+                
+                // Make canvas size match original
+                solutionCanvas.width = this.originalImage.width;
+                solutionCanvas.height = this.originalImage.height;
+                
+                // Draw original image as background
+                solutionCtx.drawImage(this.originalImage, 0, 0);
+                
+                // Calculate cell dimensions
+                const cellWidth = solutionCanvas.width / 9;
+                const cellHeight = solutionCanvas.height / 9;
+                
+                // Set font properties for numbers
+                const fontSize = Math.min(cellWidth, cellHeight) * 0.4;
+                solutionCtx.font = `bold ${fontSize}px Arial`;
+                solutionCtx.textAlign = 'center';
+                solutionCtx.textBaseline = 'middle';
+                
+                // Add solved numbers
                 for (let row = 0; row < 9; row++) {
-                    let rowText = '';
                     for (let col = 0; col < 9; col++) {
-                        const value = this.grid[row][col];
-                        rowText += (value > 0 ? value : '.') + ' ';
-                        if (col === 2 || col === 5) rowText += '| ';
-                    }
-                    gridText += rowText + '\n';
-                    if (row === 2 || row === 5) {
-                        gridText += '------+-------+------\n';
+                        const originalValue = this.extractedGrid[row][col];
+                        const solvedValue = this.solvedGrid[row][col];
+                        
+                        if (originalValue === 0 && solvedValue > 0) {
+                            // This is a newly solved number
+                            const x = col * cellWidth + cellWidth / 2;
+                            const y = row * cellHeight + cellHeight / 2;
+                            
+                            // Draw white circle background
+                            solutionCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                            solutionCtx.beginPath();
+                            solutionCtx.arc(x, y, fontSize * 0.7, 0, 2 * Math.PI);
+                            solutionCtx.fill();
+                            
+                            // Draw number in blue
+                            solutionCtx.fillStyle = '#2196F3';
+                            solutionCtx.strokeStyle = 'white';
+                            solutionCtx.lineWidth = 2;
+                            solutionCtx.strokeText(solvedValue.toString(), x, y);
+                            solutionCtx.fillText(solvedValue.toString(), x, y);
+                        }
                     }
                 }
                 
-                gridText += '\nArray format:\n';
-                gridText += JSON.stringify(this.grid, null, 2);
+                // Convert to image and display
+                const solvedImageUrl = solutionCanvas.toDataURL('image/png');
+                const solvedImg = document.getElementById('solvedImage');
+                solvedImg.src = solvedImageUrl;
                 
-                results.textContent = gridText;
-                results.style.display = 'block';
+                // Setup download
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.href = solvedImageUrl;
             }
             
-            updateStats() {
-                const filledCells = this.grid.flat().filter(cell => cell > 0).length;
-                const emptyCells = 81 - filledCells;
+            displayResults(solveTime) {
+                const filledCells = this.extractedGrid.flat().filter(cell => cell > 0).length;
                 const avgConfidence = this.confidenceScores.length > 0 
                     ? Math.round(this.confidenceScores.reduce((a, b) => a + b, 0) / this.confidenceScores.length)
                     : 0;
                 
-                document.getElementById('filledCount').textContent = filledCells;
-                document.getElementById('emptyCount').textContent = emptyCells;
+                document.getElementById('extractedCount').textContent = filledCells;
+                document.getElementById('solveTime').textContent = solveTime + 's';
                 document.getElementById('confidence').textContent = avgConfidence + '%';
+                
                 document.getElementById('stats').style.display = 'flex';
-            }
-            
-            copyGrid() {
-                const gridText = JSON.stringify(this.grid);
-                navigator.clipboard.writeText(gridText).then(() => {
-                    this.updateStatus('Grid copied to clipboard!', 'success');
-                });
+                document.getElementById('imageSection').style.display = 'grid';
             }
             
             clear() {
-                this.image = null;
-                this.grid = Array(9).fill().map(() => Array(9).fill(0));
+                this.originalImage = null;
+                this.extractedGrid = Array(9).fill().map(() => Array(9).fill(0));
+                this.solvedGrid = Array(9).fill().map(() => Array(9).fill(0));
                 this.confidenceScores = [];
                 
-                document.getElementById('imagePreview').style.display = 'none';
-                document.getElementById('gridDisplay').style.display = 'none';
-                document.getElementById('results').style.display = 'none';
+                document.getElementById('originalImage').src = '';
+                document.getElementById('solvedImage').src = '';
+                document.getElementById('imageSection').style.display = 'none';
                 document.getElementById('stats').style.display = 'none';
-                document.getElementById('debugCanvas').style.display = 'none';
-                document.getElementById('extractBtn').disabled = true;
-                document.getElementById('copyBtn').disabled = true;
+                document.getElementById('solveBtn').disabled = true;
                 document.getElementById('fileInput').value = '';
                 this.updateStatus('', '');
             }
@@ -570,13 +705,13 @@
             updateStatus(message, type) {
                 const status = document.getElementById('status');
                 status.textContent = message;
-                status.className = type;
+                status.className = `status ${type}`;
             }
         }
         
-        // Initialize the extractor when page loads
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new SudokuExtractor();
+            new SudokuSolver();
         });
     </script>
 </body>
